@@ -1,0 +1,45 @@
+---
+title: "survey_reformat"
+output: html_document
+---
+
+**How to Use**
+
+1. Set the path to the correct file you want to reformat in the *Read CSV* chunk
+2. Rename the final csv files in the *Write CSV* chunk, using the format YYYYMM for the date
+3. Run all chunks :)
+4. To test, run on sample.csv
+
+```{r Load Libraries}
+library("tidyverse")
+library("reshape")
+```
+
+```{r Read CSV, message=FALSE}
+survey <- read_csv("sample.csv")
+```
+
+```{r Visual Survey, message=FALSE, warning=FALSE}
+survey <- transform(survey, Split = colsplit(CreationDate, split = "\\ ", names = c('Date', 'Time', 'a')))
+survey$Date <- as.Date(survey$Split.Date, "%m/%d/%Y") %>% str_replace_all("[^[:alnum:]]", "")
+survey <- survey %>% mutate(ID = 100+(1:n()))
+survey[65:66] <- lapply(survey[65:66], as.numeric)
+survey <- survey %>% mutate(pool_ID = ((Date*1000)+ID))
+visnames <- c("RCH_Juv", "RCH_Adu", "SKR_Juv", "SKR_SAdu", "SKR_Adu", "SCLP_Juv", "SCLP_Adu", "PKM_Juv", "PKM_Sadu", "PKM_Adu", "CYP_Juv", "CYP_Adu", "Lamprey_Amm", "Lamprey_Adu", "FYLF_Lar", "FYLF_Meta", "FYLF_Froglet", "FYLF_Adu", "CRLF_Lar", "CRLF_Meta", "CRLF_Froglet", "CRLF_Adu", "Treefrog_Lar", "Treefrog_Meta", "Treefrog_Froglet", "Treefrog_Adu", "Toad_Lar", "Toad_Meta", "Toad_Adu", "Rana_Lar", "Rana_Meta", "Rana_Adu", "NEWT_Lar", "NEWT_Adu", "Mussels_live", "Mussels_shell", "PondTUR", "Garter", "Date", "Pool_ID")
+visual <- survey %>% select(-c(1:14, 53:64, 66))
+names(visual) <- c(names(visual)[0], visnames)
+visual_long <- gather(visual, Species, Range, 1:38) %>% separate(Species, into = c("Species", "Stage"))
+```
+
+```{r Physico, message = FALSE}
+physnames <- c("Section", "Reach", "Length", "Width", "Depth", "Temperature", "DO_perc", "DO_mgL", "pH", "Date", "Pool_ID")
+physico <- survey %>% select(-c(1:3, 13:64, 66))
+names(physico) <- c(names(physico)[0], physnames)
+physico <- physico[,c(10,11,1:9)]
+```
+
+```{r Write CSV}
+visual_long %>% write.csv("YYYYMM_visual")
+physico %>% write.csv("YYYYMM_physico")
+```
+
